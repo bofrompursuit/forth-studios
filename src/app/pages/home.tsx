@@ -226,7 +226,7 @@ const weddingPhotos = [
   { src: wedding5, caption: "Baker Editorial" },
 ];
 
-const ADOBE_WEDDING_URL = "https://adobe.ly/4AOAaVe";
+const ADOBE_WEDDING_URL = "https://adobe.ly/4hyhss4";
 
 function DestinationWeddingCarousel() {
   const { activeIndex, setActiveIndex, isDragging, prev, next, handlers, visibleIndices } = useCarousel(weddingPhotos.length);

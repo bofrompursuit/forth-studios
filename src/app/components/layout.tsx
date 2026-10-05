@@ -108,7 +108,7 @@ export function Layout() {
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-sun/40 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} B.B. Moldenhauer — All Rights Reserved</p>
+          <p>© {new Date().getFullYear()} Bo Moldenhauer All Rights Reserved</p>
           <div className="flex gap-6">
             {navLinks.map((link) => (
               <Link key={link.to} to={link.to} className="label-caps text-sm hover:underline underline-offset-4">
