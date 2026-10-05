@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 import { GalleryItem } from "../components/gallery-item";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Sparkles, ShoppingBag, Shirt, Salad, Dumbbell, Mail, Download, Camera, ChevronLeft, ChevronRight, Heart, ExternalLink, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Plus, Minus } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import heroVideo from "@/imports/12987890-hd_1920_1080_30fps.mp4";
@@ -10,7 +11,7 @@ import wedding2 from "@/imports/Baker_Editorial_05-1.jpg";
 import wedding3 from "@/imports/Baker_Editorial_07-1.jpg";
 import wedding4 from "@/imports/Baker_Editorial_13-1.jpg";
 import wedding5 from "@/imports/Baker_Editorial_20-1.jpg";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Wordmark } from "../components/wordmark";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import img1 from "figma:asset/9a9e69e074d15f946ec91a7352461b00c7fcb328.png";
@@ -60,118 +61,159 @@ const defaultCreations = [
   }
 ];
 
-function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
+/** Section header: big expanded title with an optional mono kicker and intro. */
+function SectionHeader({
+  index,
+  title,
+  intro,
+}: {
+  index: string;
+  title: string;
+  intro?: string;
+}) {
+  return (
+    <div className="mb-10 grid gap-6 md:mb-14 md:grid-cols-12 md:items-end">
+      <div className="min-w-0 md:col-span-8">
+        <p className="mb-3 text-sm">({index})</p>
+        <h2 className="font-wide text-[2rem] uppercase leading-[0.9] sm:text-5xl md:text-6xl lg:text-7xl">{title}</h2>
+      </div>
+      {intro && <p className="max-w-md text-base leading-relaxed md:col-span-4">{intro}</p>}
+    </div>
+  );
+}
+
+/** Three-up carousel with swipe support, shared by the wedding and snapshot sections. */
+function useCarousel(count: number) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
 
-  const count = snapshots.length;
   const prev = () => setActiveIndex((i) => (i - 1 + count) % count);
   const next = () => setActiveIndex((i) => (i + 1) % count);
 
-  const onMouseDown = (e: React.MouseEvent) => { setIsDragging(false); dragStartX.current = e.clientX; };
-  const onMouseUp = (e: React.MouseEvent) => {
-    const delta = e.clientX - dragStartX.current;
-    if (Math.abs(delta) > 40) { setIsDragging(true); delta < 0 ? next() : prev(); }
-  };
-  const onTouchStart = (e: React.TouchEvent) => { dragStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const delta = e.changedTouches[0].clientX - dragStartX.current;
-    if (Math.abs(delta) > 40) delta < 0 ? next() : prev();
+  const handlers = {
+    onMouseDown: (e: React.MouseEvent) => { setIsDragging(false); dragStartX.current = e.clientX; },
+    onMouseUp: (e: React.MouseEvent) => {
+      const delta = e.clientX - dragStartX.current;
+      if (Math.abs(delta) > 40) { setIsDragging(true); delta < 0 ? next() : prev(); }
+    },
+    onTouchStart: (e: React.TouchEvent) => { dragStartX.current = e.touches[0].clientX; },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const delta = e.changedTouches[0].clientX - dragStartX.current;
+      if (Math.abs(delta) > 40) delta < 0 ? next() : prev();
+    },
   };
 
-  if (count === 0) return null;
-
-  const visibleIndices = [
+  const visibleIndices = count === 0 ? [] : [
     (activeIndex - 1 + count) % count,
     activeIndex,
     (activeIndex + 1) % count,
   ];
 
+  return { activeIndex, setActiveIndex, isDragging, prev, next, handlers, visibleIndices };
+}
+
+function CarouselControls({
+  count,
+  activeIndex,
+  onSelect,
+  onPrev,
+  onNext,
+  label,
+}: {
+  count: number;
+  activeIndex: number;
+  onSelect: (i: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  label: string;
+}) {
   return (
-    <section className="border-t border-neutral-800 bg-neutral-950 px-4 sm:px-6 py-16 md:py-24">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-800/50 px-4 py-2">
-            <Camera className="size-4 text-purple-400" />
-            <span className="text-sm text-neutral-300">Behind the Scenes</span>
-          </div>
-          <h2 className="mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-4xl sm:text-5xl text-transparent">
-            Snapshots by Bo
-          </h2>
-          <p className="mx-auto max-w-2xl text-base sm:text-lg text-neutral-400">
-            Candid moments, creative inspiration, and personal photography from my journey.
-          </p>
-        </div>
-
-        <div
-          className="relative select-none"
-          onMouseDown={onMouseDown}
-          onMouseUp={onMouseUp}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
+    <div className="mt-8 flex items-center justify-between border-t border-current pt-4">
+      <div className="flex gap-1">
+        {Array.from({ length: count }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(i)}
+            className={`px-1.5 font-mono text-sm tabular-nums ${i === activeIndex ? "underline underline-offset-4" : "opacity-50 hover:opacity-100"}`}
+            aria-label={`Go to ${label} ${i + 1}`}
+          >
+            {String(i + 1).padStart(2, "0")}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onPrev}
+          className="border border-current p-2 transition hover:bg-current/10"
+          aria-label={`Previous ${label}`}
         >
-          <div className="flex items-center justify-center gap-3 sm:gap-5 overflow-hidden py-4">
-            {visibleIndices.map((photoIdx, position) => {
-              const isCenter = position === 1;
-              const snap = snapshots[photoIdx];
-              return (
-                <div
-                  key={`${photoIdx}-${position}`}
-                  className={`relative flex-shrink-0 overflow-hidden rounded-xl transition-all duration-500 ${
-                    isCenter
-                      ? "w-64 h-80 sm:w-80 sm:h-96 md:w-96 md:h-[28rem] opacity-100 scale-100 ring-2 ring-purple-400/30 shadow-2xl shadow-purple-900/20 z-10"
-                      : "w-48 h-64 sm:w-56 sm:h-72 md:w-64 md:h-80 opacity-40 scale-95"
-                  }`}
-                >
-                  <img
-                    src={snap.image}
-                    alt={snap.caption || "Snapshot"}
-                    className="size-full object-cover"
-                    draggable={false}
-                  />
-                  {isCenter && snap.caption && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-sm font-medium text-white">{snap.caption}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <ArrowLeft className="size-5" />
+        </button>
+        <button
+          onClick={onNext}
+          className="border border-current p-2 transition hover:bg-current/10"
+          aria-label={`Next ${label}`}
+        >
+          <ArrowRight className="size-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
-          <button
-            onClick={prev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full border border-neutral-700 bg-neutral-900/80 p-2 text-neutral-300 backdrop-blur-sm transition hover:bg-neutral-800 hover:text-white"
-            aria-label="Previous snapshot"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <button
-            onClick={next}
-            className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full border border-neutral-700 bg-neutral-900/80 p-2 text-neutral-300 backdrop-blur-sm transition hover:bg-neutral-800 hover:text-white"
-            aria-label="Next snapshot"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
+function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
+  const { activeIndex, setActiveIndex, prev, next, handlers, visibleIndices } = useCarousel(snapshots.length);
 
-        <div className="mt-8 flex justify-center gap-2">
-          {snapshots.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === activeIndex ? "w-6 bg-purple-400" : "w-1.5 bg-neutral-600 hover:bg-neutral-400"
-              }`}
-              aria-label={`Go to snapshot ${i + 1}`}
-            />
-          ))}
+  if (snapshots.length === 0) return null;
+
+  return (
+    <section className="bg-ink px-5 py-20 text-sun sm:px-12 md:py-28">
+      <SectionHeader
+        index="02"
+        title="Snapshots by Bo"
+        intro="Candid moments, creative inspiration, and personal photography from my journey."
+      />
+
+      <div className="select-none" {...handlers}>
+        <div className="flex items-center justify-center gap-3 overflow-hidden sm:gap-5">
+          {visibleIndices.map((photoIdx, position) => {
+            const isCenter = position === 1;
+            const snap = snapshots[photoIdx];
+            return (
+              <figure
+                key={`${photoIdx}-${position}`}
+                className={`relative flex-shrink-0 overflow-hidden transition-all duration-500 ${
+                  isCenter
+                    ? "z-10 h-80 w-64 sm:h-96 sm:w-80 md:h-[30rem] md:w-[24rem]"
+                    : "h-64 w-48 opacity-40 sm:h-72 sm:w-56 md:h-80 md:w-64"
+                }`}
+              >
+                <img
+                  src={snap.image}
+                  alt={snap.caption || "Snapshot"}
+                  className="size-full object-cover"
+                  draggable={false}
+                />
+                {isCenter && snap.caption && (
+                  <figcaption className="absolute bottom-0 left-0 bg-sun px-3 py-1.5 text-sm text-ink">
+                    {snap.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
+          })}
         </div>
       </div>
+
+      <CarouselControls
+        count={snapshots.length}
+        activeIndex={activeIndex}
+        onSelect={setActiveIndex}
+        onPrev={prev}
+        onNext={next}
+        label="snapshot"
+      />
     </section>
   );
 }
@@ -187,147 +229,112 @@ const weddingPhotos = [
 const ADOBE_WEDDING_URL = "https://adobe.ly/4AOAaVe";
 
 function DestinationWeddingCarousel() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartX = useRef(0);
-
-  const prev = () => setActiveIndex((i) => (i - 1 + weddingPhotos.length) % weddingPhotos.length);
-  const next = () => setActiveIndex((i) => (i + 1) % weddingPhotos.length);
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(false);
-    dragStartX.current = e.clientX;
-  };
-  const onMouseUp = (e: React.MouseEvent) => {
-    const delta = e.clientX - dragStartX.current;
-    if (Math.abs(delta) > 40) {
-      setIsDragging(true);
-      delta < 0 ? next() : prev();
-    }
-  };
-  const onTouchStart = (e: React.TouchEvent) => {
-    dragStartX.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const delta = e.changedTouches[0].clientX - dragStartX.current;
-    if (Math.abs(delta) > 40) delta < 0 ? next() : prev();
-  };
-
-  const visibleIndices = [
-    (activeIndex - 1 + weddingPhotos.length) % weddingPhotos.length,
-    activeIndex,
-    (activeIndex + 1) % weddingPhotos.length,
-  ];
+  const { activeIndex, setActiveIndex, isDragging, prev, next, handlers, visibleIndices } = useCarousel(weddingPhotos.length);
 
   return (
-    <section className="border-t border-neutral-800 bg-gradient-to-b from-neutral-950 to-neutral-900 px-4 sm:px-6 py-16 md:py-24">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-800/60 bg-rose-900/20 px-4 py-2">
-            <Heart className="size-4 text-rose-400" />
-            <span className="text-sm text-rose-300">Photography Collection</span>
-          </div>
-          <h2 className="mb-4 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-200 bg-clip-text text-4xl sm:text-5xl text-transparent font-light tracking-wide">
-            Destination Wedding
-          </h2>
-          <p className="mx-auto max-w-xl text-base text-neutral-400">
-            A curated collection of intimate ceremonies in breathtaking locations. Click any image to explore the full album.
-          </p>
-        </div>
+    <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
+      <SectionHeader
+        index="01"
+        title="Destination Wedding"
+        intro="A curated collection of intimate ceremonies in breathtaking locations. Click any image to explore the full album."
+      />
 
-        {/* Carousel */}
-        <div
-          className="relative select-none"
-          onMouseDown={onMouseDown}
-          onMouseUp={onMouseUp}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <div className="flex items-center justify-center gap-3 sm:gap-5 overflow-hidden py-4">
-            {visibleIndices.map((photoIdx, position) => {
-              const isCenter = position === 1;
-              const photo = weddingPhotos[photoIdx];
-              return (
-                <a
-                  key={`${photoIdx}-${position}`}
-                  href={ADOBE_WEDDING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => isDragging && e.preventDefault()}
-                  className={`relative flex-shrink-0 overflow-hidden rounded-xl cursor-pointer transition-all duration-500 ${
-                    isCenter
-                      ? "w-64 h-80 sm:w-80 sm:h-96 md:w-96 md:h-[28rem] opacity-100 scale-100 ring-2 ring-rose-400/40 shadow-2xl shadow-rose-900/20 z-10"
-                      : "w-48 h-64 sm:w-56 sm:h-72 md:w-64 md:h-80 opacity-50 scale-95 hover:opacity-70"
-                  }`}
-                >
-                  <ImageWithFallback
-                    src={photo.src}
-                    alt={photo.caption}
-                    className="size-full object-cover transition-transform duration-700 hover:scale-105"
-                  />
-                  {isCenter && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-sm font-medium text-white">{photo.caption}</p>
-                        <span className="mt-1 inline-flex items-center gap-1 text-xs text-rose-300">
-                          <ExternalLink className="size-3" /> View Full Album
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </a>
-              );
-            })}
-          </div>
-
-          {/* Nav buttons */}
-          <button
-            onClick={prev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full border border-neutral-700 bg-neutral-900/80 p-2 text-neutral-300 backdrop-blur-sm transition hover:bg-neutral-800 hover:text-white"
-            aria-label="Previous photo"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <button
-            onClick={next}
-            className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full border border-neutral-700 bg-neutral-900/80 p-2 text-neutral-300 backdrop-blur-sm transition hover:bg-neutral-800 hover:text-white"
-            aria-label="Next photo"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
-
-        {/* Dot indicators */}
-        <div className="mt-8 flex justify-center gap-2">
-          {weddingPhotos.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === activeIndex ? "w-6 bg-rose-400" : "w-1.5 bg-neutral-600 hover:bg-neutral-400"
-              }`}
-              aria-label={`Go to photo ${i + 1}`}
-            />
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="mt-10 text-center">
-          <a
-            href={ADOBE_WEDDING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-rose-700/50 bg-rose-900/20 px-6 py-3 text-sm text-rose-300 transition hover:bg-rose-900/40 hover:text-rose-200"
-          >
-            <Heart className="size-4" />
-            View Full Wedding Album
-            <ExternalLink className="size-4" />
-          </a>
+      <div className="select-none" {...handlers}>
+        <div className="flex items-center justify-center gap-3 overflow-hidden sm:gap-5">
+          {visibleIndices.map((photoIdx, position) => {
+            const isCenter = position === 1;
+            const photo = weddingPhotos[photoIdx];
+            return (
+              <a
+                key={`${photoIdx}-${position}`}
+                href={ADOBE_WEDDING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => isDragging && e.preventDefault()}
+                className={`group relative flex-shrink-0 cursor-pointer overflow-hidden transition-all duration-500 ${
+                  isCenter
+                    ? "z-10 h-80 w-64 sm:h-96 sm:w-80 md:h-[30rem] md:w-[24rem]"
+                    : "h-64 w-48 opacity-50 hover:opacity-80 sm:h-72 sm:w-56 md:h-80 md:w-64"
+                }`}
+              >
+                <ImageWithFallback
+                  src={photo.src}
+                  alt={photo.caption}
+                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                {isCenter && (
+                  <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-ink px-3 py-1.5 text-sm text-sun">
+                    {photo.caption} <ArrowUpRight className="size-4" />
+                  </span>
+                )}
+              </a>
+            );
+          })}
         </div>
       </div>
+
+      <CarouselControls
+        count={weddingPhotos.length}
+        activeIndex={activeIndex}
+        onSelect={setActiveIndex}
+        onPrev={prev}
+        onNext={next}
+        label="photo"
+      />
+
+      <div className="mt-10">
+        <a
+          href={ADOBE_WEDDING_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="label-caps inline-flex items-center gap-2 bg-ink px-6 py-4 text-sun transition hover:bg-charcoal"
+        >
+          View Full Wedding Album
+          <ArrowUpRight className="size-4" />
+        </a>
+      </div>
     </section>
+  );
+}
+
+/** Full-width accordion row in the editorial style. */
+function Collapsible({
+  index,
+  eyebrow,
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  index: string;
+  eyebrow: string;
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-ink">
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="group flex w-full items-center justify-between gap-6 px-5 py-8 text-left sm:px-12"
+      >
+        <div className="flex items-baseline gap-4 sm:gap-8">
+          <span className="font-mono text-sm">({index})</span>
+          <div>
+            <p className="label-caps mb-1 text-sm">{eyebrow}</p>
+            <h2 className="text-3xl uppercase group-hover:underline group-hover:decoration-2 group-hover:underline-offset-4 sm:text-4xl md:text-5xl">
+              {title}
+            </h2>
+          </div>
+        </div>
+        <span className="shrink-0 border border-ink p-2 transition group-hover:bg-ink group-hover:text-sun">
+          {open ? <Minus className="size-5" /> : <Plus className="size-5" />}
+        </span>
+      </button>
+      {open && <div className="border-t border-ink">{children}</div>}
+    </div>
   );
 }
 
@@ -401,221 +408,177 @@ export function Home() {
     }
   }
 
-  const filteredCreations = selectedCategory === "all" 
-    ? creations 
+  const filteredCreations = selectedCategory === "all"
+    ? creations
     : creations.filter(creation => creation.category.toLowerCase().replace(/\s+/g, '') === selectedCategory);
 
   const [amplifOpen, setAmplifOpen] = useState(false);
   const [ugcOpen, setUgcOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
 
+  const categories = [
+    { value: "all", label: "All" },
+    { value: "beauty", label: "Beauty" },
+    { value: "fashion", label: "Fashion" },
+    { value: "food&drink", label: "Food" },
+    { value: "fitness", label: "Fitness" },
+  ];
+
   return (
     <div>
-      {/* Hero Section — video background */}
-      <header className="relative h-screen min-h-[560px] overflow-hidden border-b border-neutral-800">
-        {/* Background video */}
-        <video
-          src={heroVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 size-full object-cover"
-        />
-        {/* Scrim */}
-        <div className="absolute inset-0 bg-gradient-to-tl from-black/80 via-black/30 to-transparent" />
+      {/* Hero — giant wordmark over a two-column intro */}
+      <header className="px-5 pt-10 pb-20 sm:px-12 sm:pt-16 md:pb-28">
+        <h1 className="sr-only">Forth Studios</h1>
+        <Wordmark text="FORTH" />
 
-        {/* Text — bottom-right */}
-        <div className="absolute bottom-10 right-6 max-w-sm text-right sm:bottom-14 sm:right-12 md:max-w-md lg:max-w-lg lg:right-16 lg:bottom-16">
-          <h1 className="mb-2 text-5xl font-light tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl">
-            Forth Studios
-          </h1>
-          <p className="mb-4 text-base font-light tracking-widest text-white/70 sm:text-lg">
-            by Bo Moldenhauer
-          </p>
-          <p className="text-sm leading-relaxed text-white/50 sm:text-base">
-            A creative studio where photography, storytelling, and AI-powered content converge. Destination weddings, editorial portraits, and brand visuals — crafted with intention.
-          </p>
+        <div className="mt-10 grid gap-10 sm:mt-14 md:grid-cols-12 md:gap-12">
+          <div className="relative aspect-[4/5] overflow-hidden bg-charcoal md:col-span-7">
+            <video
+              src={heroVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 size-full object-cover"
+            />
+          </div>
+
+          <div className="flex flex-col md:col-span-5">
+            <p className="text-3xl font-extrabold uppercase leading-[1.02] tracking-[-0.05em] font-display sm:text-4xl lg:text-5xl">
+              Photography, storytelling &amp; AI content by Bo Moldenhauer
+            </p>
+            <p className="mt-8 max-w-md text-base leading-relaxed">
+              A creative studio where photography, storytelling, and AI-powered content converge. Destination weddings, editorial portraits, and brand visuals — crafted with intention.
+            </p>
+            <div className="mt-auto flex flex-wrap gap-3 pt-10">
+              <a href="#work" className="label-caps bg-ink px-6 py-4 text-sun transition hover:bg-charcoal">
+                See the work
+              </a>
+              <Link to="/contact" className="label-caps border border-ink px-6 py-4 transition hover:bg-ink hover:text-sun">
+                Book a shoot
+              </Link>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Destination Wedding Section */}
-      <DestinationWeddingCarousel />
+      <div id="work" className="scroll-mt-24">
+        {/* Destination Wedding Section */}
+        <DestinationWeddingCarousel />
+      </div>
 
       {/* Snapshots by Bo — carousel */}
       <SnapshotsCarousel snapshots={snapshots} />
 
       {/* Collapsible: amplif.AI */}
-      <div className="border-t border-neutral-800">
-        <button
-          onClick={() => setAmplifOpen((o) => !o)}
-          className="flex w-full items-center justify-between px-6 py-6 text-left transition hover:bg-neutral-900/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="rounded-full border border-neutral-700 bg-neutral-800/50 p-2">
-              <Sparkles className="size-4 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500 uppercase tracking-widest mb-0.5">AI Portfolio</p>
-              <h2 className="text-xl font-medium text-white">amplif.AI by Bo Moldenhauer</h2>
-            </div>
-          </div>
-          <ChevronDown
-            className={`size-5 text-neutral-400 transition-transform duration-300 ${amplifOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-        {amplifOpen && (
-          <div className="border-t border-neutral-800 bg-gradient-to-b from-neutral-900 to-black px-6 py-16">
-            <div className="mx-auto max-w-3xl text-center">
-              <p className="mb-4 text-lg text-neutral-400 md:text-xl">
-                Welcome to my AI content portfolio. I specialize in creating compelling visuals for brands across beauty, fashion, food, and fitness industries using cutting-edge artificial intelligence tools.
-              </p>
-              <p className="text-base text-neutral-500">
-                Each piece demonstrates the powerful synergy between human creativity and AI capabilities, delivering professional-grade content for modern marketing needs.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      <Collapsible
+        index="03"
+        eyebrow="AI Portfolio"
+        title="amplif.AI by Bo Moldenhauer"
+        open={amplifOpen}
+        onToggle={() => setAmplifOpen((o) => !o)}
+      >
+        <div className="grid gap-6 px-5 py-14 sm:px-12 md:grid-cols-12">
+          <p className="text-xl leading-relaxed md:col-span-7 md:text-2xl">
+            Welcome to my AI content portfolio. I specialize in creating compelling visuals for brands across beauty, fashion, food, and fitness industries using cutting-edge artificial intelligence tools.
+          </p>
+          <p className="text-base leading-relaxed md:col-span-4 md:col-start-9">
+            Each piece demonstrates the powerful synergy between human creativity and AI capabilities, delivering professional-grade content for modern marketing needs.
+          </p>
+        </div>
+      </Collapsible>
 
       {/* Collapsible: UGC Samples */}
-      <div className="border-t border-neutral-800">
-        <button
-          onClick={() => setUgcOpen((o) => !o)}
-          className="flex w-full items-center justify-between px-6 py-6 text-left transition hover:bg-neutral-900/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="rounded-full border border-neutral-700 bg-neutral-800/50 p-2">
-              <ShoppingBag className="size-4 text-pink-400" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500 uppercase tracking-widest mb-0.5">Gallery</p>
-              <h2 className="text-xl font-medium text-white">UGC Samples</h2>
-            </div>
+      <Collapsible
+        index="04"
+        eyebrow="Gallery"
+        title="UGC Samples"
+        open={ugcOpen}
+        onToggle={() => setUgcOpen((o) => !o)}
+      >
+        <div className="px-5 py-12 sm:px-12 md:py-16">
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-10">
+            <TabsList className="h-auto flex-wrap justify-start gap-0 rounded-none border border-ink bg-transparent p-0">
+              {categories.map((c) => (
+                <TabsTrigger
+                  key={c.value}
+                  value={c.value}
+                  className="label-caps h-auto flex-none rounded-none border-0 border-r border-ink px-5 py-3 text-sm last:border-r-0 data-[state=active]:bg-ink data-[state=active]:text-sun data-[state=active]:shadow-none"
+                >
+                  {c.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCreations.map((creation) => (
+              <GalleryItem key={creation.id} {...creation} />
+            ))}
           </div>
-          <ChevronDown
-            className={`size-5 text-neutral-400 transition-transform duration-300 ${ugcOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-        {ugcOpen && (
-          <div className="border-t border-neutral-800">
-            <main className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-20">
-              <div className="mb-12 flex justify-center">
-                <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full max-w-3xl">
-                  <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 bg-neutral-900 gap-1">
-                    <TabsTrigger value="all" className="data-[state=active]:bg-neutral-800 text-xs sm:text-sm">
-                      <Sparkles className="mr-1 sm:mr-2 size-3 sm:size-4" />All
-                    </TabsTrigger>
-                    <TabsTrigger value="beauty" className="data-[state=active]:bg-neutral-800 text-xs sm:text-sm">
-                      <ShoppingBag className="mr-1 sm:mr-2 size-3 sm:size-4" />Beauty
-                    </TabsTrigger>
-                    <TabsTrigger value="fashion" className="data-[state=active]:bg-neutral-800 text-xs sm:text-sm">
-                      <Shirt className="mr-1 sm:mr-2 size-3 sm:size-4" />Fashion
-                    </TabsTrigger>
-                    <TabsTrigger value="food&drink" className="data-[state=active]:bg-neutral-800 text-xs sm:text-sm">
-                      <Salad className="mr-1 sm:mr-2 size-3 sm:size-4" />Food
-                    </TabsTrigger>
-                    <TabsTrigger value="fitness" className="data-[state=active]:bg-neutral-800 text-xs sm:text-sm">
-                      <Dumbbell className="mr-1 sm:mr-2 size-3 sm:size-4" />Fitness
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredCreations.map((creation) => (
-                  <GalleryItem key={creation.id} {...creation} />
-                ))}
-              </div>
-              {filteredCreations.length === 0 && (
-                <div className="py-20 text-center">
-                  <Sparkles className="mx-auto mb-4 size-12 text-neutral-600" />
-                  <h3 className="mb-2 text-xl text-neutral-400">No creations found</h3>
-                  <p className="text-neutral-500">Try selecting a different category</p>
-                </div>
-              )}
-            </main>
-          </div>
-        )}
-      </div>
+          {filteredCreations.length === 0 && (
+            <div className="border border-ink py-20 text-center">
+              <h3 className="mb-2 text-xl uppercase">No creations found</h3>
+              <p>Try selecting a different category</p>
+            </div>
+          )}
+        </div>
+      </Collapsible>
 
       {/* Collapsible: Get Your Free AI Guide */}
-      <div className="border-t border-neutral-800">
-        <button
-          onClick={() => setGuideOpen((o) => !o)}
-          className="flex w-full items-center justify-between px-6 py-6 text-left transition hover:bg-neutral-900/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="rounded-full border border-neutral-700 bg-neutral-800/50 p-2">
-              <Download className="size-4 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500 uppercase tracking-widest mb-0.5">Free Resource</p>
-              <h2 className="text-xl font-medium text-white">Get Your Free AI Content Guide</h2>
-            </div>
+      <Collapsible
+        index="05"
+        eyebrow="Free Resource"
+        title="Get Your Free AI Content Guide"
+        open={guideOpen}
+        onToggle={() => setGuideOpen((o) => !o)}
+      >
+        <div className="grid gap-10 bg-paper px-5 py-14 sm:px-12 md:grid-cols-12">
+          <div className="md:col-span-5">
+            <h3 className="font-wide text-3xl uppercase leading-[0.95] sm:text-4xl">10 Best AI Prompts for Product Photography</h3>
+            <p className="mt-6 text-base leading-relaxed">
+              Download the guide and receive monthly tips, industry insights, and exclusive content creation strategies directly to your inbox.
+            </p>
           </div>
-          <ChevronDown
-            className={`size-5 text-neutral-400 transition-transform duration-300 ${guideOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-        {guideOpen && (
-          <div className="border-t border-neutral-800 px-6 py-16">
-            <div className="mx-auto max-w-4xl">
-              <Card className="border-neutral-800 bg-gradient-to-br from-purple-900/20 to-blue-900/20">
-                <CardHeader className="text-center">
-                  <div className="mx-auto mb-4 w-fit rounded-full bg-purple-500/10 p-4">
-                    <Download className="size-8 text-purple-400" />
-                  </div>
-                  <CardTitle className="text-3xl text-white">Get Your Free AI Content Guide</CardTitle>
-                  <CardDescription className="text-lg">
-                    Download "10 Best AI Prompts for Product Photography" and receive monthly tips,
-                    industry insights, and exclusive content creation strategies directly to your inbox.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {subscribed ? (
-                    <div className="rounded-lg bg-green-950/50 border border-green-900 p-6 text-center">
-                      <p className="text-green-400">
-                        Thank you for subscribing! Check your email for the free guide.
-                      </p>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSubscribe} className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Input
-                          type="text"
-                          placeholder="Your Name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                          className="bg-neutral-800 border-neutral-700 text-white"
-                        />
-                        <Input
-                          type="email"
-                          placeholder="Your Email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="bg-neutral-800 border-neutral-700 text-white"
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        disabled={subscribing}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        {subscribing ? "Subscribing..." : "Get Free Guide & Subscribe"}
-                      </Button>
-                      <p className="text-center text-xs text-neutral-500">
-                        No spam, unsubscribe anytime. Your email is safe with us.
-                      </p>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+          <div className="md:col-span-6 md:col-start-7">
+            {subscribed ? (
+              <div className="border border-ink bg-sun p-6">
+                <p>Thank you for subscribing! Check your email for the free guide.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    type="text"
+                    placeholder="Your Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="h-12 rounded-none border-ink bg-paper font-mono"
+                  />
+                  <Input
+                    type="email"
+                    placeholder="Your Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 rounded-none border-ink bg-paper font-mono"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={subscribing}
+                  className="label-caps h-14 w-full rounded-none"
+                >
+                  {subscribing ? "Subscribing..." : "Get Free Guide & Subscribe"}
+                </Button>
+                <p className="text-sm text-charcoal">
+                  No spam, unsubscribe anytime. Your email is safe with us.
+                </p>
+              </form>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      </Collapsible>
     </div>
   );
 }
