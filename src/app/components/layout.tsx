@@ -1,7 +1,11 @@
 import { Outlet, Link, useLocation } from "react-router";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowUpRight } from "lucide-react";
+import QRCode from "react-qr-code";
 import { useState } from "react";
 import { Wordmark } from "./wordmark";
+
+const VENMO_URL = "https://venmo.com/u/beau_moldenhauer";
+const SOLUTIONS_URL = "https://bob2bsolutionsarchitect.vercel.app/";
 
 const navLinks = [
   { to: "/services", label: "Services", isActive: (path: string) => path === "/services" },
@@ -75,7 +79,35 @@ export function Layout() {
       {/* Footer */}
       <footer className="bg-ink px-5 pt-12 pb-8 text-sun sm:px-12">
         <Wordmark text="FORTH" />
-        <div className="mt-8 flex flex-col gap-3 border-t border-sun/40 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between">
+
+        {/* Support row */}
+        <div className="mt-8 grid gap-6 border-t border-sun/40 pt-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-8">
+          <a
+            href={VENMO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-fit bg-paper p-1.5"
+            aria-label="Venmo @beau_moldenhauer"
+          >
+            <QRCode value={VENMO_URL} size={72} level="M" bgColor="#ffffff" fgColor="#000000" className="block size-[72px]" />
+          </a>
+          <p className="max-w-md text-sm leading-relaxed">
+            Donate to my SMB &amp; my future apps through Venmo:{" "}
+            <a href={VENMO_URL} target="_blank" rel="noopener noreferrer" className="font-bold underline-offset-4 hover:underline">
+              @beau_moldenhauer
+            </a>
+          </p>
+          <a
+            href={SOLUTIONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="label-caps inline-flex w-fit items-center gap-2 border border-sun/60 px-4 py-2.5 text-sm transition hover:bg-sun hover:text-ink"
+          >
+            B2B Solutions Architect <ArrowUpRight className="size-4" />
+          </a>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 border-t border-sun/40 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} B.B. Moldenhauer — All Rights Reserved</p>
           <div className="flex gap-6">
             {navLinks.map((link) => (
