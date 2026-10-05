@@ -68,7 +68,7 @@ function SectionHeader({
   intro,
 }: {
   index: string;
-  title: string;
+  title: React.ReactNode;
   intro?: string;
 }) {
   return (
@@ -82,138 +82,163 @@ function SectionHeader({
   );
 }
 
-/** Three-up carousel with swipe support, shared by the wedding and snapshot sections. */
-function useCarousel(count: number) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartX = useRef(0);
-
-  const prev = () => setActiveIndex((i) => (i - 1 + count) % count);
-  const next = () => setActiveIndex((i) => (i + 1) % count);
-
-  const handlers = {
-    onMouseDown: (e: React.MouseEvent) => { setIsDragging(false); dragStartX.current = e.clientX; },
-    onMouseUp: (e: React.MouseEvent) => {
-      const delta = e.clientX - dragStartX.current;
-      if (Math.abs(delta) > 40) { setIsDragging(true); delta < 0 ? next() : prev(); }
-    },
-    onTouchStart: (e: React.TouchEvent) => { dragStartX.current = e.touches[0].clientX; },
-    onTouchEnd: (e: React.TouchEvent) => {
-      const delta = e.changedTouches[0].clientX - dragStartX.current;
-      if (Math.abs(delta) > 40) delta < 0 ? next() : prev();
-    },
-  };
-
-  const visibleIndices = count === 0 ? [] : [
-    (activeIndex - 1 + count) % count,
-    activeIndex,
-    (activeIndex + 1) % count,
-  ];
-
-  return { activeIndex, setActiveIndex, isDragging, prev, next, handlers, visibleIndices };
-}
-
-function CarouselControls({
+/**
+ * Horizontally scrollable, snap-aligned strip. Works with touch swipe,
+ * trackpad, shift+wheel and mouse drag; arrows and numbers jump between slides.
+ */
+function ScrollCarousel({
   count,
-  activeIndex,
-  onSelect,
-  onPrev,
-  onNext,
   label,
+  children,
 }: {
   count: number;
-  activeIndex: number;
-  onSelect: (i: number) => void;
-  onPrev: () => void;
-  onNext: () => void;
   label: string;
+  children: React.ReactNode;
 }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const drag = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
+
+  const slides = () => Array.from(trackRef.current?.children ?? []) as HTMLElement[];
+
+  const scrollToIndex = (i: number) => {
+    const track = trackRef.current;
+    const slide = slides()[(i + count) % count];
+    if (!track || !slide) return;
+    track.scrollTo({ left: slide.offsetLeft - track.offsetLeft, behavior: "smooth" });
+  };
+
+  const onScroll = () => {
+    const track = trackRef.current;
+    if (!track) return;
+    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+    if (atEnd) return setActiveIndex(count - 1);
+    let closest = 0;
+    slides().forEach((s, i) => {
+      const d = Math.abs(s.offsetLeft - track.offsetLeft - track.scrollLeft);
+      const best = Math.abs(slides()[closest].offsetLeft - track.offsetLeft - track.scrollLeft);
+      if (d < best) closest = i;
+    });
+    setActiveIndex(closest);
+  };
+
+  // Mouse drag-to-scroll for desktop (touch devices scroll natively).
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || !trackRef.current) return;
+    drag.current = { active: true, startX: e.clientX, startScroll: trackRef.current.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const track = trackRef.current;
+    if (!drag.current.active || !track) return;
+    const dx = e.clientX - drag.current.startX;
+    if (Math.abs(dx) > 5 && !drag.current.moved) {
+      drag.current.moved = true;
+      track.style.scrollSnapType = "none";
+    }
+    if (drag.current.moved) track.scrollLeft = drag.current.startScroll - dx;
+  };
+  const endDrag = () => {
+    const track = trackRef.current;
+    if (!drag.current.active || !track) return;
+    drag.current.active = false;
+    if (drag.current.moved) {
+      track.style.scrollSnapType = "";
+      scrollToIndex(activeIndex);
+    }
+  };
+  // Swallow the click that ends a drag so linked slides don't open.
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (drag.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      drag.current.moved = false;
+    }
+  };
+
   return (
-    <div className="mt-8 flex items-center justify-between border-t border-current pt-4">
-      <div className="flex gap-1">
-        {Array.from({ length: count }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => onSelect(i)}
-            className={`px-1.5 font-mono text-sm tabular-nums ${i === activeIndex ? "underline underline-offset-4" : "opacity-50 hover:opacity-100"}`}
-            aria-label={`Go to ${label} ${i + 1}`}
-          >
-            {String(i + 1).padStart(2, "0")}
-          </button>
-        ))}
+    <div>
+      <div
+        ref={trackRef}
+        onScroll={onScroll}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerLeave={endDrag}
+        onClickCapture={onClickCapture}
+        onDragStart={(e) => e.preventDefault()}
+        className="-mx-5 flex cursor-grab snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-5 px-5 pb-2 select-none [scrollbar-width:none] active:cursor-grabbing sm:-mx-12 sm:scroll-px-12 sm:gap-6 sm:px-12 [&::-webkit-scrollbar]:hidden"
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={label}
+        tabIndex={0}
+      >
+        {children}
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={onPrev}
-          className="border border-current p-2 transition hover:bg-current/10"
-          aria-label={`Previous ${label}`}
-        >
-          <ArrowLeft className="size-5" />
-        </button>
-        <button
-          onClick={onNext}
-          className="border border-current p-2 transition hover:bg-current/10"
-          aria-label={`Next ${label}`}
-        >
-          <ArrowRight className="size-5" />
-        </button>
+
+      <div className="mt-8 flex items-center justify-between border-t border-current pt-4">
+        <div className="flex gap-1">
+          {Array.from({ length: count }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToIndex(i)}
+              className={`px-1.5 font-mono text-sm tabular-nums ${i === activeIndex ? "underline underline-offset-4" : "opacity-50 hover:opacity-100"}`}
+              aria-label={`Go to ${label} ${i + 1}`}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => scrollToIndex(activeIndex - 1)}
+            className="border border-current p-2 transition hover:bg-current/10"
+            aria-label={`Previous ${label}`}
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <button
+            onClick={() => scrollToIndex(activeIndex + 1)}
+            className="border border-current p-2 transition hover:bg-current/10"
+            aria-label={`Next ${label}`}
+          >
+            <ArrowRight className="size-5" />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
-  const { activeIndex, setActiveIndex, prev, next, handlers, visibleIndices } = useCarousel(snapshots.length);
+const slideClass = "relative aspect-[4/5] w-[78vw] shrink-0 snap-start overflow-hidden sm:w-80 md:w-[24rem]";
 
+function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
   if (snapshots.length === 0) return null;
 
   return (
     <section className="bg-ink px-5 py-20 text-sun sm:px-12 md:py-28">
       <SectionHeader
-        index="02"
+        index="03"
         title="Snapshots by Bo"
         intro="Candid moments, creative inspiration, and personal photography from my journey."
       />
 
-      <div className="select-none" {...handlers}>
-        <div className="flex items-center justify-center gap-3 overflow-hidden sm:gap-5">
-          {visibleIndices.map((photoIdx, position) => {
-            const isCenter = position === 1;
-            const snap = snapshots[photoIdx];
-            return (
-              <figure
-                key={`${photoIdx}-${position}`}
-                className={`relative flex-shrink-0 overflow-hidden transition-all duration-500 ${
-                  isCenter
-                    ? "z-10 h-80 w-64 sm:h-96 sm:w-80 md:h-[30rem] md:w-[24rem]"
-                    : "h-64 w-48 opacity-40 sm:h-72 sm:w-56 md:h-80 md:w-64"
-                }`}
-              >
-                <img
-                  src={snap.image}
-                  alt={snap.caption || "Snapshot"}
-                  className="size-full object-cover"
-                  draggable={false}
-                />
-                {isCenter && snap.caption && (
-                  <figcaption className="absolute bottom-0 left-0 bg-sun px-3 py-1.5 text-sm text-ink">
-                    {snap.caption}
-                  </figcaption>
-                )}
-              </figure>
-            );
-          })}
-        </div>
-      </div>
-
-      <CarouselControls
-        count={snapshots.length}
-        activeIndex={activeIndex}
-        onSelect={setActiveIndex}
-        onPrev={prev}
-        onNext={next}
-        label="snapshot"
-      />
+      <ScrollCarousel count={snapshots.length} label="snapshot">
+        {snapshots.map((snap, i) => (
+          <figure key={snap.id ?? i} className={slideClass}>
+            <img
+              src={snap.image}
+              alt={snap.caption || "Snapshot"}
+              className="size-full object-cover"
+              draggable={false}
+            />
+            {snap.caption && (
+              <figcaption className="absolute bottom-0 left-0 bg-sun px-3 py-1.5 text-sm text-ink">
+                {snap.caption}
+              </figcaption>
+            )}
+          </figure>
+        ))}
+      </ScrollCarousel>
     </section>
   );
 }
@@ -227,60 +252,39 @@ const weddingPhotos = [
 ];
 
 const ADOBE_WEDDING_URL = "https://adobe.ly/4hyhss4";
+const DJ_URL = "https://jonnyverse.vercel.app/";
 
 function DestinationWeddingCarousel() {
-  const { activeIndex, setActiveIndex, isDragging, prev, next, handlers, visibleIndices } = useCarousel(weddingPhotos.length);
-
   return (
     <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
       <SectionHeader
         index="01"
-        title="Destination Wedding"
+        title={<>Destination Weddings+<wbr />Events</>}
         intro="A curated collection of intimate ceremonies in breathtaking locations. Click any image to explore the full album."
       />
 
-      <div className="select-none" {...handlers}>
-        <div className="flex items-center justify-center gap-3 overflow-hidden sm:gap-5">
-          {visibleIndices.map((photoIdx, position) => {
-            const isCenter = position === 1;
-            const photo = weddingPhotos[photoIdx];
-            return (
-              <a
-                key={`${photoIdx}-${position}`}
-                href={ADOBE_WEDDING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => isDragging && e.preventDefault()}
-                className={`group relative flex-shrink-0 cursor-pointer overflow-hidden transition-all duration-500 ${
-                  isCenter
-                    ? "z-10 h-80 w-64 sm:h-96 sm:w-80 md:h-[30rem] md:w-[24rem]"
-                    : "h-64 w-48 opacity-50 hover:opacity-80 sm:h-72 sm:w-56 md:h-80 md:w-64"
-                }`}
-              >
-                <ImageWithFallback
-                  src={photo.src}
-                  alt={photo.caption}
-                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                {isCenter && (
-                  <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-ink px-3 py-1.5 text-sm text-sun">
-                    {photo.caption} <ArrowUpRight className="size-4" />
-                  </span>
-                )}
-              </a>
-            );
-          })}
-        </div>
-      </div>
-
-      <CarouselControls
-        count={weddingPhotos.length}
-        activeIndex={activeIndex}
-        onSelect={setActiveIndex}
-        onPrev={prev}
-        onNext={next}
-        label="photo"
-      />
+      <ScrollCarousel count={weddingPhotos.length} label="photo">
+        {weddingPhotos.map((photo, i) => (
+          <a
+            key={i}
+            href={ADOBE_WEDDING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            draggable={false}
+            className={`group ${slideClass}`}
+          >
+            <ImageWithFallback
+              src={photo.src}
+              alt={photo.caption}
+              draggable={false}
+              className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-ink px-3 py-1.5 text-sm text-sun">
+              {photo.caption} <ArrowUpRight className="size-4" />
+            </span>
+          </a>
+        ))}
+      </ScrollCarousel>
 
       <div className="mt-10">
         <a
@@ -294,6 +298,34 @@ function DestinationWeddingCarousel() {
         </a>
       </div>
     </section>
+  );
+}
+
+/** Add-on band: book DJ Jonnypurse alongside a wedding or event. */
+function DjAddOn() {
+  return (
+    <a
+      href={DJ_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block border-t border-ink bg-paper px-5 py-12 transition-colors hover:bg-ink hover:text-sun sm:px-12 md:py-14"
+    >
+      <div className="grid items-center gap-6 md:grid-cols-12">
+        <p className="text-sm md:col-span-1">(02)</p>
+        <div className="md:col-span-7">
+          <p className="label-caps mb-2 text-sm">Add-on</p>
+          <h2 className="font-wide text-3xl uppercase leading-[0.9] sm:text-5xl">Add a DJ to your package</h2>
+        </div>
+        <div className="flex items-end justify-between gap-6 md:col-span-4">
+          <p className="max-w-xs leading-relaxed">
+            Keep the dance floor full — pair your photography with a set from DJ Jonnypurse.
+          </p>
+          <span className="shrink-0 border border-current p-3 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1">
+            <ArrowUpRight className="size-6" />
+          </span>
+        </div>
+      </div>
+    </a>
   );
 }
 
@@ -454,7 +486,7 @@ export function Home() {
               <a href="#work" className="label-caps bg-ink px-6 py-4 text-sun transition hover:bg-charcoal">
                 See the work
               </a>
-              <Link to="/contact" className="label-caps border border-ink px-6 py-4 transition hover:bg-ink hover:text-sun">
+              <Link to="/book" className="label-caps border border-ink px-6 py-4 transition hover:bg-ink hover:text-sun">
                 Book a shoot
               </Link>
             </div>
@@ -467,12 +499,15 @@ export function Home() {
         <DestinationWeddingCarousel />
       </div>
 
+      {/* DJ add-on */}
+      <DjAddOn />
+
       {/* Snapshots by Bo — carousel */}
       <SnapshotsCarousel snapshots={snapshots} />
 
       {/* Collapsible: amplif.AI */}
       <Collapsible
-        index="03"
+        index="04"
         eyebrow="AI Portfolio"
         title="amplif.AI by Bo Moldenhauer"
         open={amplifOpen}
@@ -490,7 +525,7 @@ export function Home() {
 
       {/* Collapsible: UGC Samples */}
       <Collapsible
-        index="04"
+        index="05"
         eyebrow="Gallery"
         title="UGC Samples"
         open={ugcOpen}
@@ -526,7 +561,7 @@ export function Home() {
 
       {/* Collapsible: Get Your Free AI Guide */}
       <Collapsible
-        index="05"
+        index="06"
         eyebrow="Free Resource"
         title="Get Your Free AI Content Guide"
         open={guideOpen}

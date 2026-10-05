@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Home } from "./pages/home";
 import { Contact } from "./pages/contact";
+import { Book } from "./pages/book";
 import { Services } from "./pages/services";
 import { Blog } from "./pages/blog";
 import { BlogPost } from "./pages/blog-post";
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: "blog", Component: Blog },
       { path: "blog/:slug", Component: BlogPost },
       { path: "contact", Component: Contact },
+      { path: "book", Component: Book },
     ],
   },
   {
