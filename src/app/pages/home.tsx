@@ -333,7 +333,8 @@ function Q4Work() {
   }
 
   return (
-    <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
+    <section className="relative isolate overflow-hidden bg-ink px-5 py-20 text-sun sm:px-12 md:py-28">
+      <div aria-hidden className="q4-glow pointer-events-none absolute inset-0 -z-10" />
       <SectionHeader
         index="01"
         title="2026 Q4 Work"
@@ -359,7 +360,7 @@ function Q4Work() {
                   draggable={false}
                   className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-ink px-3 py-1.5 text-sm text-sun">
+                <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-sun px-3 py-1.5 text-sm text-ink">
                   {c.tag} <ArrowUpRight className="size-4" />
                 </span>
               </a>
@@ -368,7 +369,7 @@ function Q4Work() {
         </div>
       ))}
 
-      <div id="q4-collection" className="mt-12 grid scroll-mt-24 gap-6 border border-ink bg-paper p-6 sm:p-8 md:grid-cols-12 md:items-end">
+      <div id="q4-collection" className="mt-12 grid scroll-mt-24 gap-6 bg-paper p-6 text-ink sm:p-8 md:grid-cols-12 md:items-end">
         <div className="md:col-span-5">
           <p className="label-caps mb-2 text-sm">Full collection</p>
           <h3 className="font-wide text-2xl uppercase leading-[0.95] sm:text-3xl">See every frame</h3>
@@ -424,7 +425,7 @@ const DJ_URL = "https://jonnyverse.vercel.app/";
 
 function DestinationWeddingCarousel() {
   return (
-    <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
+    <section className="bg-paper px-5 py-20 sm:px-12 md:py-28">
       <SectionHeader
         index="02"
         title={<>Destination Weddings+<wbr />Events</>}
@@ -476,7 +477,7 @@ function DjAddOn() {
       href={DJ_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block border-t border-ink bg-paper px-5 py-12 transition-colors hover:bg-ink hover:text-sun sm:px-12 md:py-14"
+      className="group block border-y border-ink bg-sun px-5 py-12 transition-colors hover:bg-ink hover:text-sun sm:px-12 md:py-14"
     >
       <div className="grid items-center gap-6 md:grid-cols-12">
         <p className="text-sm md:col-span-1">(03)</p>
@@ -673,6 +674,7 @@ export function Home() {
       {/* Snapshots by Bo — carousel */}
       <SnapshotsCarousel snapshots={snapshots} />
 
+      <div className="bg-mist">
       {/* Collapsible: amplif.AI */}
       <Collapsible
         index="05"
@@ -782,6 +784,7 @@ export function Home() {
           </div>
         </div>
       </Collapsible>
+      </div>
     </div>
   );
 }
