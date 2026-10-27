@@ -14,7 +14,6 @@ export function Contact() {
       blurb: "Quick response via messaging",
       qrValue: whatsappUrl,
       qrHint: "Scan to chat on WhatsApp",
-      detail: "+1 (646) 966-9675",
       href: whatsappUrl,
       cta: "Open WhatsApp",
     },
@@ -64,7 +63,7 @@ export function Contact() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm">{c.qrHint}</p>
-                <p className="mt-1 break-all text-lg font-bold">{c.detail}</p>
+                {c.detail && <p className="mt-1 break-all text-lg font-bold">{c.detail}</p>}
               </div>
             </div>
             <a

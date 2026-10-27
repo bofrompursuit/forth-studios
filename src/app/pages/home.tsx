@@ -11,6 +11,34 @@ import wedding2 from "@/imports/Baker_Editorial_05-1.jpg";
 import wedding3 from "@/imports/Baker_Editorial_07-1.jpg";
 import wedding4 from "@/imports/Baker_Editorial_13-1.jpg";
 import wedding5 from "@/imports/Baker_Editorial_20-1.jpg";
+import q4_4976 from "@/imports/q4-2026/q4-4976.jpg";
+import q4_5060 from "@/imports/q4-2026/q4-5060.jpg";
+import q4_5067 from "@/imports/q4-2026/q4-5067.jpg";
+import q4_4990 from "@/imports/q4-2026/q4-4990.jpg";
+import q4_5013 from "@/imports/q4-2026/q4-5013.jpg";
+import q4_4996 from "@/imports/q4-2026/q4-4996.jpg";
+import q4_5073 from "@/imports/q4-2026/q4-5073.jpg";
+import q4_5014 from "@/imports/q4-2026/q4-5014.jpg";
+import q4_4986 from "@/imports/q4-2026/q4-4986.jpg";
+import q4_4969 from "@/imports/q4-2026/q4-4969.jpg";
+import q4_5061 from "@/imports/q4-2026/q4-5061.jpg";
+import q4_5050 from "@/imports/q4-2026/q4-5050.jpg";
+import q4_5032 from "@/imports/q4-2026/q4-5032.jpg";
+import q4_4980 from "@/imports/q4-2026/q4-4980.jpg";
+import jb_5150 from "@/imports/jb-2026/jb-5150.jpg";
+import jb_5233 from "@/imports/jb-2026/jb-5233.jpg";
+import jb_5290 from "@/imports/jb-2026/jb-5290.jpg";
+import jb_5345 from "@/imports/jb-2026/jb-5345.jpg";
+import jb_5322 from "@/imports/jb-2026/jb-5322.jpg";
+import jb_5219 from "@/imports/jb-2026/jb-5219.jpg";
+import jb_0816 from "@/imports/jb-2026/jb-0816.jpg";
+import jb_5353 from "@/imports/jb-2026/jb-5353.jpg";
+import jb_5230 from "@/imports/jb-2026/jb-5230.jpg";
+import jb_5340 from "@/imports/jb-2026/jb-5340.jpg";
+import jb_5242 from "@/imports/jb-2026/jb-5242.jpg";
+import jb_5305 from "@/imports/jb-2026/jb-5305.jpg";
+import jb_5368 from "@/imports/jb-2026/jb-5368.jpg";
+import jb_5330 from "@/imports/jb-2026/jb-5330.jpg";
 import { Wordmark } from "../components/wordmark";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
@@ -217,7 +245,7 @@ function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
   return (
     <section className="bg-ink px-5 py-20 text-sun sm:px-12 md:py-28">
       <SectionHeader
-        index="03"
+        index="04"
         title="Snapshots by Bo"
         intro="Candid moments, creative inspiration, and personal photography from my journey."
       />
@@ -243,6 +271,146 @@ function SnapshotsCarousel({ snapshots }: { snapshots: any[] }) {
   );
 }
 
+const q4Photos = [q4_4976, q4_5060, q4_5067, q4_4990, q4_5013, q4_4996, q4_5073, q4_5014, q4_4986, q4_4969, q4_5061, q4_5050, q4_5032, q4_4980];
+
+const jbPhotos = [jb_5150, jb_5233, jb_5290, jb_5345, jb_5322, jb_5219, jb_0816, jb_5353, jb_5230, jb_5340, jb_5242, jb_5305, jb_5368, jb_5330];
+
+const q4Collections = [
+  {
+    title: "City of Gods",
+    tag: "City of Gods 2026",
+    photos: q4Photos,
+    folderUrl: "https://drive.google.com/drive/folders/1awiH_pn-N0IB1CHrzIIItnc4xSb4Exgd?usp=drive_link",
+  },
+  {
+    title: "Balcon Jennifer's Body",
+    tag: "Balcon Jennifer's Body 2026",
+    photos: jbPhotos,
+    folderUrl: "https://drive.google.com/drive/folders/1FdvnRIx12KYKSp0jYRPU10ly37X3hLO8?usp=sharing",
+  },
+];
+const Q4_UNLOCK_KEY = "forth-q4-2026-unlocked";
+// Google Apps Script web app that appends each unlock to the "Forth Studios — Email Signups" sheet.
+// Set VITE_SIGNUP_SHEET_URL in .env.local / Vercel.
+const SIGNUP_SHEET_URL = import.meta.env.VITE_SIGNUP_SHEET_URL as string | undefined;
+
+/** Append a signup row to the sheet. Fire-and-forget: no-cors hides the response. */
+async function logSignup(data: { email: string; name?: string; source: string }) {
+  if (!SIGNUP_SHEET_URL) return;
+  // text/plain + no-cors avoids a CORS preflight, which Apps Script can't answer.
+  await fetch(SIGNUP_SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ ...data, page: location.href }),
+  });
+}
+
+function readUnlocked() {
+  try { return localStorage.getItem(Q4_UNLOCK_KEY) === "1"; } catch { return false; }
+}
+
+/** Selected frames from the Q4 shoots, with the full folder behind an email gate. */
+function Q4Work() {
+  const [unlocked, setUnlocked] = useState(readUnlocked);
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  async function unlock(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    setError("");
+    try {
+      await logSignup({ email, source: "2026 Q4 Work" });
+      try { localStorage.setItem(Q4_UNLOCK_KEY, "1"); } catch {}
+      setUnlocked(true);
+    } catch {
+      setError("Something went wrong — please try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
+      <SectionHeader
+        index="01"
+        title="2026 Q4 Work"
+        intro="Selected frames from this season's nights out — costume, colour, and the people who make the room."
+      />
+
+      {q4Collections.map((c, ci) => (
+        <div key={c.title} className={ci > 0 ? "mt-16 md:mt-20" : undefined}>
+          <h3 className="mb-8 text-2xl uppercase sm:text-3xl">{c.title}</h3>
+          <ScrollCarousel count={c.photos.length} label={`${c.title} photo`}>
+            {c.photos.map((src, i) => (
+              <a
+                key={i}
+                href={unlocked ? c.folderUrl : "#q4-collection"}
+                {...(unlocked && { target: "_blank", rel: "noopener noreferrer" })}
+                draggable={false}
+                className={`group ${slideClass}`}
+              >
+                <ImageWithFallback
+                  src={src}
+                  alt={`${c.tag}, frame ${i + 1}`}
+                  loading="lazy"
+                  draggable={false}
+                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <span className="absolute bottom-0 left-0 inline-flex items-center gap-1 bg-ink px-3 py-1.5 text-sm text-sun">
+                  {c.tag} <ArrowUpRight className="size-4" />
+                </span>
+              </a>
+            ))}
+          </ScrollCarousel>
+        </div>
+      ))}
+
+      <div id="q4-collection" className="mt-12 grid scroll-mt-24 gap-6 border border-ink bg-paper p-6 sm:p-8 md:grid-cols-12 md:items-end">
+        <div className="md:col-span-5">
+          <p className="label-caps mb-2 text-sm">Full collection</p>
+          <h3 className="font-wide text-2xl uppercase leading-[0.95] sm:text-3xl">See every frame</h3>
+        </div>
+        <div className="md:col-span-7">
+          {unlocked ? (
+            <div className="flex flex-wrap gap-3">
+              {q4Collections.map((c) => (
+                <a
+                  key={c.title}
+                  href={c.folderUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="label-caps inline-flex items-center gap-2 bg-ink px-6 py-4 text-sun transition hover:bg-charcoal"
+                >
+                  {c.title} <ArrowUpRight className="size-4" />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <form onSubmit={unlock} className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                type="email"
+                placeholder="Your email to unlock"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                aria-label="Email address"
+                className="h-14 flex-1 rounded-none border-ink bg-paper font-mono"
+              />
+              <Button type="submit" disabled={sending} className="label-caps h-14 rounded-none px-6">
+                {sending ? "Unlocking..." : "Unlock"}
+              </Button>
+            </form>
+          )}
+          {error && <p className="mt-3 text-sm">{error}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const weddingPhotos = [
   { src: wedding1, caption: "Baker Editorial" },
   { src: wedding2, caption: "Baker Editorial" },
@@ -258,7 +426,7 @@ function DestinationWeddingCarousel() {
   return (
     <section className="border-t border-ink px-5 py-20 sm:px-12 md:py-28">
       <SectionHeader
-        index="01"
+        index="02"
         title={<>Destination Weddings+<wbr />Events</>}
         intro="A curated collection of intimate ceremonies in breathtaking locations. Click any image to explore the full album."
       />
@@ -311,7 +479,7 @@ function DjAddOn() {
       className="group block border-t border-ink bg-paper px-5 py-12 transition-colors hover:bg-ink hover:text-sun sm:px-12 md:py-14"
     >
       <div className="grid items-center gap-6 md:grid-cols-12">
-        <p className="text-sm md:col-span-1">(02)</p>
+        <p className="text-sm md:col-span-1">(03)</p>
         <div className="md:col-span-7">
           <p className="label-caps mb-2 text-sm">Add-on</p>
           <h2 className="font-wide text-3xl uppercase leading-[0.9] sm:text-5xl">Add a DJ to your package</h2>
@@ -425,10 +593,7 @@ export function Home() {
     setSubscribing(true);
 
     try {
-      await apiRequest('/newsletter', {
-        method: 'POST',
-        body: JSON.stringify({ email, name }),
-      });
+      await logSignup({ email, name, source: 'AI Content Guide' });
       setSubscribed(true);
       setEmail('');
       setName('');
@@ -495,6 +660,9 @@ export function Home() {
       </header>
 
       <div id="work" className="scroll-mt-24">
+        {/* 2026 Q4 Work */}
+        <Q4Work />
+
         {/* Destination Wedding Section */}
         <DestinationWeddingCarousel />
       </div>
@@ -507,7 +675,7 @@ export function Home() {
 
       {/* Collapsible: amplif.AI */}
       <Collapsible
-        index="04"
+        index="05"
         eyebrow="AI Portfolio"
         title="amplif.AI by Bo Moldenhauer"
         open={amplifOpen}
@@ -525,7 +693,7 @@ export function Home() {
 
       {/* Collapsible: UGC Samples */}
       <Collapsible
-        index="05"
+        index="06"
         eyebrow="Gallery"
         title="UGC Samples"
         open={ugcOpen}
@@ -561,7 +729,7 @@ export function Home() {
 
       {/* Collapsible: Get Your Free AI Guide */}
       <Collapsible
-        index="06"
+        index="07"
         eyebrow="Free Resource"
         title="Get Your Free AI Content Guide"
         open={guideOpen}
